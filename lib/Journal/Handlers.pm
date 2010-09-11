@@ -7,7 +7,7 @@ use Journal::View;
 sub all {
     my $class = shift;
     return [
-        '^/feed$' => => 'Journal::Handler::Feed',
+        '^/feed$' => 'Journal::Handler::Feed',
         '^/entry/(\d+)' => 'Journal::Handler::Entry',
         '^/writer(?:/?$|/(\d+))' => 'Journal::Handler::Writer',
         '^/(?:$|page/(\d+))' => 'Journal::Handler::Page',
