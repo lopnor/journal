@@ -9,10 +9,11 @@ my $dsn = delete $config->{dsn};
 my $app = Journal->handler($dsn ? {dsn => $dsn} : ());
 
 builder {
-    enable 'Plack::Middleware::ReverseProxy';
+    enable 'ReverseProxy';
+    enable 'Static', path => qr{^/static/};
     enable_if { 
         $_[0]->{SCRIPT_NAME}.$_[0]->{PATH_INFO} =~ m{^/writer} 
-    } 'Plack::Middleware::Auth::Basic', authenticator => \&authen_cb;
+    } 'Auth::Basic', authenticator => \&authen_cb;
     $app;
 };
 
