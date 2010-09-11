@@ -189,7 +189,7 @@ sub get {
     $self->db->select('entry', '*', undef, {-desc => 'id'}, 10, 0,
         $self->async_cb(sub {
                 my ($dbh, $rows, $rv) = @_;
-                my $base = $self->request->base;
+                my $base = $self->request->base->as_string;
                 my $feed = XML::Feed->new('RSS');
                 $feed->title('soffritto::journal');
                 $feed->description('');
@@ -197,7 +197,9 @@ sub get {
                 for my $e (map {$self->db->inflate($_)} @$rows) {
                     my $entry = XML::Feed::Entry->new('RSS');
                     $entry->title($e->{subject});
-                    $entry->link(URI::WithBase->new("/entry/$e->{id}", $base));
+                    $entry->link( 
+                        URI::WithBase->new("/entry/$e->{id}", $base)->abs
+                    );
                     $entry->content($e->{html});
                     $entry->issued($e->{posted_at});
                     $feed->add_entry($entry);
