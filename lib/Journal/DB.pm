@@ -3,9 +3,9 @@ use Any::Moose;
 extends 'Tatsumaki::Service';
 use AnyEvent::DBI::Abstract::Limit;
 use Text::Markdown;
-#use Text::Xatena;
 use Text::Hatena;
-use DateTime::Format::Strptime;
+use DateTime;
+use DateTime::TimeZone;
 
 has dbi => (is => 'rw', isa => 'AnyEvent::DBI::Abstract::Limit', lazy_build => 1);
 has dsn => (is => 'rw', isa => 'ArrayRef', default => sub {
@@ -14,10 +14,6 @@ has markdown => (
     is => 'rw', isa => 'Text::Markdown', lazy_build => 1, 
     handles => {format_markdown => 'markdown'},
 );
-#has xatena => (
-#    is => 'rw', isa => 'Text::Xatena', lazy_build => 1, 
-#    handles => {format_xatena => 'format'},
-#);
 has tz => ( is => 'ro', isa => 'DateTime::TimeZone', lazy_build => 1 );
 
 sub _build_dbi {
@@ -25,7 +21,6 @@ sub _build_dbi {
     AnyEvent::DBI::Abstract::Limit->new(@{$self->dsn});
 }
 
-#sub _build_xatena { Text::Xatena->new }
 sub _build_markdown { Text::Markdown->new }
 sub _build_tz { DateTime::TimeZone->new(name => 'local') }
 
