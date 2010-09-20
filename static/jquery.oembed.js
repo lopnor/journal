@@ -1,4 +1,4 @@
-﻿(function($) {
+(function($) {
     $.fn.oembed = function(url, options, callback) {
 
         options = $.extend({}, $.fn.oembed.defaults, options);
@@ -24,8 +24,13 @@
                 }
             }
 
-            //            callback(container, null);
+            callback(container, null);
         });
+    };
+
+    $.fn.oembed.registerProvider = function (name, urlPattern, oEmbedUrl, callbackparameter) {
+        var p = new OEmbedProvider(name, urlPattern, oEmbedUrl, callbackparameter);
+        providers.push(p);
     };
 
     // Plugin defaults
