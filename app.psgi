@@ -10,7 +10,7 @@ my $dsn = delete $config->{dsn};
 my $app = Journal->handler($dsn ? {dsn => $dsn} : ());
 
 builder {
-    enable 'ReverseProxy';
+#    enable 'ReverseProxy';
     enable 'Static', path => qr{^/static/};
     enable_if { 
         $_[0]->{SCRIPT_NAME}.$_[0]->{PATH_INFO} =~ m{^/writer} 
