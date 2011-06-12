@@ -5,6 +5,7 @@ requires 'Tatsumaki';
 requires 'AnyEvent::DBI::Abstract::Limit';
 requires 'DBD::mysql';
 requires 'Markapl';
+requires 'YAML';
 requires 'Config::Pit';
 requires 'Text::Markdown';
 requires 'Text::Hatena';
