@@ -3,6 +3,7 @@ name 'Journal';
 all_from 'lib/Journal.pm';
 requires 'Tatsumaki';
 requires 'AnyEvent::DBI::Abstract::Limit';
+requires 'DBD::mysql';
 requires 'Markapl';
 requires 'Config::Pit';
 requires 'Text::Markdown';
