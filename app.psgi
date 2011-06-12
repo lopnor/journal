@@ -3,7 +3,8 @@ use Journal;
 use Plack::Builder;
 use Config::Pit;
 
-my $config = pit_get('journal.soffritto.org') or die;
+#my $config = pit_get('journal.soffritto.org') or die;
+my $config = do 'config.pl';
 my $dsn = delete $config->{dsn};
 
 my $app = Journal->handler($dsn ? {dsn => $dsn} : ());
