@@ -37,7 +37,7 @@ sub call {
         when (m{^/page/(?<page>\d+)$}) { $res = $self->page($req, $+{page}) }
         when (m{^/entry/(?<id>\d+)$}) { $res = $self->entry($req, $+{id}) }
         when (m{^/feed$}) { $res = $self->feed($req) }
-        default { $res = $req->not_fond() }
+        default { $res = $req->not_found() }
     }
 
     return $res->finalize;
@@ -48,7 +48,7 @@ sub writer_get {
     my $entry = {};
     if ($id) {
         $entry = $self->db->find('entry', '*', {id => $id})
-            or return $self->not_found($req);
+            or return $req->not_found($req);
     }
     return $req->normal_response(
         Journal::View->render_layout('writer', {entry => $entry})
@@ -57,26 +57,21 @@ sub writer_get {
 
 sub writer_post {
     my ($self, $req, $id) = @_;
-    my $params = $req->parameters;
-    if ($params->remove('delete')) {
+    my $params = $req->parameters->as_hashref;
+    if (delete $params->{delete}) {
         $self->db->delete('entry', {id => $id}) if $id;
         return $req->redirect_to('/');
     } elsif ($id) {
-        $self->db->update('entry', $params->as_hashref, {id => $id});
-        my ($stmt, @bind) = $self->sql->update(
-            'entry', $params->as_hashref, {id => $id}
-        );
-        $self->dbh->do($stmt, {}, @bind);
+        $self->db->update('entry', $params, {id => $id});
         return $req->redirect_to("/entry/$id");
     } else {
-        my ($stmt, @bind) = $self->sql->insert(
+        my ($stmt, @bind) = $self->db->insert(
             'entry', {
-                %{$params->as_hashref},
+                %$params,
                 posted_at => time,
             }
         );
-        $self->dbh->do($stmt, {}, @bind);
-        $id = $self->dbh->selectrow_hashref('select max(id) from entry')->{id};
+        $id = $self->db->max('entry', 'id');
         return $req->redirect_to("/entry/$id");
     }
 }

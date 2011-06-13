@@ -34,4 +34,10 @@ sub find {
     $self->{dbh}->selectrow_hashref($stmt, {}, @bind);
 }
 
+sub max {
+    my ($self, $table, $col) = @_;
+    my ($stmt) = $self->{sql}->select($table, "max($col) as max");
+    return $self->{dbh}->selectrow_hashref($stmt)->{max};
+}
+
 1;
