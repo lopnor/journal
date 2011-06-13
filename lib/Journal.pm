@@ -70,7 +70,10 @@ sub writer_post {
         return $req->redirect_to("/entry/$id");
     } else {
         my ($stmt, @bind) = $self->sql->insert(
-            'entry', $params->as_hashref
+            'entry', {
+                %{$params->as_hashref},
+                posted_at => time,
+            }
         );
         $self->dbh->do($stmt, {}, @bind);
         $id = $self->dbh->selectrow_hashref('select max(id) from entry')->{id};
