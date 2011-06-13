@@ -24,8 +24,6 @@ sub call {
     my $self = shift;
     my $req = Journal::Request->new(shift);
 
-    warn $req->path_info;
-
     my $res;
     given ($req->path_info) {
         when (m{^/writer(/(?<id>\d+)?|)$}) { 
