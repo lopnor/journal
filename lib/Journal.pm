@@ -24,22 +24,23 @@ sub call {
     my $self = shift;
     my $req = Journal::Request->new(shift);
 
-    my $res = do {
-        given ($req->path_info) {
-            when (m{^/writer(/(?<id>\d+)?|)$}) { 
-                if ($req->method eq 'POST') {
-                    $self->writer_post($req, $+{id});
-                } else {
-                    $self->writer_get($req, $+{id});
-                }
+    warn $req->path_info;
+
+    my $res;
+    given ($req->path_info) {
+        when (m{^/writer(/(?<id>\d+)?|)$}) { 
+            if ($req->method eq 'POST') {
+                $res = $self->writer_post($req, $+{id});
+            } else {
+                $res = $self->writer_get($req, $+{id});
             }
-            when (m{^/$}) { $self->page($req, 1) }
-            when (m{^/page/(?<page>\d+)$}) { $self->page($req, $+{page}) }
-            when (m{^/entry/(?<id>\d+)$}) { $self->entry($req, $+{id}) }
-            when (m{^/feed$}) { $self->feed($req) }
-            default { $req->not_fond() }
         }
-    };
+        when (m{^/$}) { $res = $self->page($req, 1) }
+        when (m{^/page/(?<page>\d+)$}) { $res = $self->page($req, $+{page}) }
+        when (m{^/entry/(?<id>\d+)$}) { $res = $self->entry($req, $+{id}) }
+        when (m{^/feed$}) { $res = $self->feed($req) }
+        default { $res = $req->not_fond() }
+    }
 
     return $res->finalize;
 }
@@ -127,10 +128,12 @@ sub deflate {
         time_zone => $self->tz,
     );
     $entry->{html} = do {
-        given ($entry->{format}) {
-            when ('hatena') { Text::Hatena->parse($entry->{body}) }
-            when ('markdown') { Text::Markdown::markdown($entry->{body}) }
-            default { $entry->{body} }
+        if ($entry->{format} eq 'hatena') {
+            Text::Hatena->parse($entry->{body})
+        } elsif ($entry->{format} eq 'markdown') {
+            Text::Markdown::markdown($entry->{body})
+        } else {
+            $entry->{body}
         }
     };
     return $entry;
