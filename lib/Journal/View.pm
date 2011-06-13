@@ -1,5 +1,5 @@
 package Journal::View;
-use 5.14.0;
+use 5.12.0;
 use Markapl;
 
 sub css($) {

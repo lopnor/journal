@@ -9,7 +9,7 @@ WriteMakefile(
     VERSION_FROM => 'lib/Journal.pm',
     ABSTRACT_FROM => 'lib/Journal.pm',
 	LICENSE => 'perl',
-	MIN_PERL_VERSION => 5.0140,
+	MIN_PERL_VERSION => 5.012000,
     PREREQ_PM => {
 		'Plack' => '0.9980',
 		'Text::Markdown' => 0,
