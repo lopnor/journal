@@ -1,26 +1,29 @@
-use inc::Module::Install;
-name 'Journal';
-all_from 'lib/Journal.pm';
-requires 'Tatsumaki';
-requires 'AnyEvent::DBI::Abstract::Limit';
-requires 'DBD::mysql';
-requires 'Markapl';
-requires 'YAML';
-requires 'Config::Pit';
-requires 'Text::Markdown';
-requires 'Text::Hatena';
-requires 'Any::Moose';
-requires 'Scalar::Util';
-requires 'URI::WithBase';
-requires 'XML::Feed';
-requires 'DateTime';
-requires 'DateTime::TimeZone';
-requires 'parent';
+#!perl
+use strict;
+use warnings;
+use ExtUtils::MakeMaker;
 
-build_requires 'Test::More';
-
-tests 't/*.t';
-
-auto_include;
-auto_set_repository;
-WriteAll;
+WriteMakefile(
+    NAME => 'Journal',
+    AUTHOR => 'Nobuo Danjou <nobuo.danjou@gmail.com>',
+    VERSION_FROM => 'lib/Journal.pm',
+    ABSTRACT_FROM => 'lib/Journal.pm',
+	LICENSE => 'perl',
+	MIN_PERL_VERSION => 5.0140,
+    PREREQ_PM => {
+		'Plack' => '0.9980',
+		'Text::Markdown' => 0,
+        'Text::Hatena' => 0,
+        'DateTime' => 0,
+        'DateTime::TimeZone' => 0,
+        'XML::Feed' => 0,
+        'Markapl' => 0,
+        'DBI' => 0,
+        'DBD::mysql' => 0,
+        'SQL::Abstract::Limit' => 0,
+        'Encode' => 0,
+        'URI::WithBase' => 0,
+        'Config::Pit' => 0,
+        'Plack::Middleware::ReverseProxy' => 0,
+    },
+);

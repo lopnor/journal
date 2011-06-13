@@ -1,7 +1,0 @@
-CREATE TABLE entry (
-id integer primary key autoincrement,
-subject text,
-body text,
-posted_at datetime,
-format text default 'markdown'
-);

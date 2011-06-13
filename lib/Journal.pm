@@ -1,18 +1,150 @@
-package Journal;
-use strict;
-use 5.008_001;
-our $VERSION = '0.01';
+use 5.14.0;
 
-use Tatsumaki::Application;
-use Journal::Handlers;
-use Journal::DB;
+package Journal 0.01 {
+    use parent 'Plack::Component';
 
-sub handler {
-    my ($class, $config) = @_;
-    my $db = Journal::DB->new($config || {} );
-    my $app = Tatsumaki::Application->new(Journal::Handlers->all);
-    $app->add_service(db => $db);
-    $app->psgi_app;
+    use Plack::Util::Accessor qw(dsn db tz);
+    use Journal::Request;
+    use Journal::View;
+    use Journal::DB;
+    use Text::Markdown ();
+    use Text::Hatena;
+    use DateTime;
+    use DateTime::TimeZone;
+    use XML::Feed;
+
+    sub prepare_app {
+        my $self = shift;
+        my $db = Journal::DB->new($self->dsn)
+            or die;
+        $self->db($db);
+        $self->tz(DateTime::TimeZone->new(name => 'local'));
+    }
+
+    sub call {
+        my $self = shift;
+        my $req = Journal::Request->new(shift);
+
+        my $res = do {
+            given ($req->path_info) {
+                when (m{^/writer(/(?<id>\d+)?|)$}) { 
+                    if ($req->method eq 'POST') {
+                        $self->writer_post($req, $+{id});
+                    } else {
+                        $self->writer_get($req, $+{id});
+                    }
+                }
+                when (m{^/$}) { $self->page($req, 1) }
+                when (m{^/page/(?<page>\d+)$}) { $self->page($req, $+{page}) }
+                when (m{^/entry/(?<id>\d+)$}) { $self->entry($req, $+{id}) }
+                when (m{^/feed$}) { $self->feed($req) }
+                default { $req->not_fond() }
+            }
+        };
+
+        return $res->finalize;
+    }
+
+    sub writer_get {
+        my ($self, $req, $id) = @_;
+        my $entry = {};
+        if ($id) {
+            $entry = $self->db->find('entry', '*', {id => $id})
+                or return $self->not_found($req);
+        }
+        return $req->normal_response(
+            Journal::View->render_layout('writer', {entry => $entry})
+        );
+    }
+
+    sub writer_post {
+        my ($self, $req, $id) = @_;
+        my $params = $req->parameters;
+        if ($params->remove('delete')) {
+            $self->db->delete('entry', {id => $id}) if $id;
+            return $req->redirect_to('/');
+        } elsif ($id) {
+            $self->db->update('entry', $params->as_hashref, {id => $id});
+            my ($stmt, @bind) = $self->sql->update(
+                'entry', $params->as_hashref, {id => $id}
+            );
+            $self->dbh->do($stmt, {}, @bind);
+            return $req->redirect_to("/entry/$id");
+        } else {
+            my ($stmt, @bind) = $self->sql->insert(
+                'entry', $params->as_hashref
+            );
+            $self->dbh->do($stmt, {}, @bind);
+            $id = $self->dbh->selectrow_hashref('select max(id) from entry')->{id};
+            return $req->redirect_to("/entry/$id");
+        }
+    }
+
+    sub page {
+        my ($self, $req, $page) = @_;
+        $page ||= 1;
+
+        my $entries = $self->db->select(
+            'entry', '*', undef, {-desc => 'id'}, 10, 10 * ($page - 1)
+        );
+        $req->normal_response(
+            Journal::View->render_layout('page',
+                { page => $page, entries => [map {$self->deflate($_) } @$entries] }
+            )
+        );
+    }
+
+    sub entry {
+        my ($self, $req, $id) = @_;
+        my $entry = $self->db->find( 'entry', '*', {id => $id} )
+            or return $req->not_found;
+        $req->normal_response(
+            Journal::View->render_layout('entry', {entry => $self->deflate($entry)})
+        );
+    }
+
+    sub feed {
+        my ($self, $req) = @_;
+        my $entries = $self->db->select('entry', '*', undef, {-desc => 'id'}, 10, 0);
+        my $feed = XML::Feed->new('RSS');
+        $feed->title('soffritto::journal');
+        $feed->description('');
+        $feed->link($req->base->as_string);
+        for my $item (map {$self->deflate($_)} @$entries) {
+            my $entry = XML::Feed::Entry->new('RSS');
+            $entry->title($item->{subject});
+            $entry->link($req->uri_for("/entry/$item->{id}"));
+            $entry->content($item->{html});
+            $entry->issued($item->{posted_at});
+            $feed->add_entry($entry);
+        }
+        $req->normal_response($feed->as_xml, 'application/rss+xml; charset=utf-8');
+    }
+
+    sub deflate {
+        my ($self, $entry) = @_;
+        $entry->{posted_at} = DateTime->from_epoch(
+            epoch => $entry->{posted_at},
+            time_zone => $self->tz,
+        );
+        $entry->{html} = do {
+            given ($entry->{format}) {
+                when ('hatena') { Text::Hatena->parse($entry->{body}) }
+                when ('markdown') { Text::Markdown::markdown($entry->{body}) }
+                default { $entry->{body} }
+            }
+        };
+        return $entry;
+    }
 }
 
 1;
+__END__
+
+=pod
+
+=head1 NAME 
+
+Journal - webapp for journal.soffritto.org
+
+=cut

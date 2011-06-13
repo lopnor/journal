@@ -1,59 +1,39 @@
-package Journal::DB;
-use Any::Moose;
-extends 'Tatsumaki::Service';
-use AnyEvent::DBI::Abstract::Limit;
-use Text::Markdown;
-use Text::Hatena;
-use DateTime;
-use DateTime::TimeZone;
+use 5.14.0;
 
-has dbi => (is => 'rw', isa => 'AnyEvent::DBI::Abstract::Limit', lazy_build => 1);
-has dsn => (is => 'rw', isa => 'ArrayRef', default => sub {
-        ['dbi:SQLite:journal.db','','', sqlite_unicode => 1 ]});
-has markdown => (
-    is => 'rw', isa => 'Text::Markdown', lazy_build => 1, 
-    handles => {format_markdown => 'markdown'},
-);
-has tz => ( is => 'ro', isa => 'DateTime::TimeZone', lazy_build => 1 );
+package Journal::DB {
+    use DBI;
+    use SQL::Abstract::Limit;
 
-sub _build_dbi {
-    my $self = shift;
-    AnyEvent::DBI::Abstract::Limit->new(@{$self->dsn});
-}
-
-sub _build_markdown { Text::Markdown->new }
-sub _build_tz { DateTime::TimeZone->new(name => 'local') }
-
-sub format_hatena {
-    my ($self, $text) = @_;
-    Text::Hatena->parse($text);
-}
-
-sub start {
-    my $self = shift;
-    $self->dbi;
-}
-
-sub insert { shift->dbi->insert(@_) }
-sub select { shift->dbi->select(@_) }
-sub update { shift->dbi->update(@_) }
-sub delete { shift->dbi->delete(@_) }
-
-sub inflate {
-    my ($self, $row) = @_;
-    my $obj = {};
-    for (qw(id subject body posted_at format)) {
-        $obj->{$_} = shift @$row;
+    sub new {
+        my ($class, $dsn) = @_;
+        $dsn or die 'dsn needed';
+        my $self = bless {}, $class;
+        $self->{dbh} = DBI->connect(@$dsn)
+            or return;
+        $self->{sql} = SQL::Abstract::Limit->new(limit_dialect => $self->{dbh});
+        return $self;
     }
-    $obj->{posted_at} = DateTime->from_epoch(
-        epoch => $obj->{posted_at},
-        time_zone => $self->tz,
-    );
-    if (my $format = $obj->{format}) {
-        my $formater = 'format_' . $format;
-        $obj->{html} = $self->$formater($obj->{body});
+
+    for my $method (qw(insert update delete)) {
+        no strict 'refs';
+        *{$method} = sub {
+            my ($self, @args) = @_;
+            my ($stmt, @bind) = $self->{sql}->$method(@args);
+            $self->{dbh}->do($stmt, {}, @bind);
+        }
     }
-    return $obj;
+
+    sub select {
+        my ($self, @args) = @_;
+        my ($stmt, @bind) = $self->{sql}->select(@args);
+        $self->{dbh}->selectall_arrayref($stmt, {Slice => {}}, @bind);
+    }
+
+    sub find {
+        my ($self, @args) = @_;
+        my ($stmt, @bind) = $self->{sql}->select(@args);
+        $self->{dbh}->selectrow_hashref($stmt, {}, @bind);
+    }
 }
 
 1;
