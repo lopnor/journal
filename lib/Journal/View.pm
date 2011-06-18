@@ -39,7 +39,7 @@ template 'page' => sub {
     my $content = [
         map( {$class->make_entry({entry => $_})} @{$stash->{entries}} ),
         div => [ { class => 'pager' },
-            a => [ { rel => 'next', href => '/entry/'.($stash->{page} + 1) },
+            a => [ { rel => 'next', href => '/page/'.($stash->{page} + 1) },
                 'next'
             ],
         ]
