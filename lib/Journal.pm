@@ -1,61 +1,40 @@
 package Journal;
 use 5.12.0;
-use parent 'Plack::Component';
-
-use Plack::Util::Accessor qw(dsn db tz);
-use Journal::Request;
-use Journal::View;
-use Journal::DB;
+use parent 'Soffritto::Web';
+use Plack::Util::Accessor qw(tz);
 use Text::Markdown ();
 use Text::Hatena;
 use DateTime;
 use DateTime::TimeZone;
 use XML::Feed;
 
-sub prepare_app {
+sub prepare {
     my $self = shift;
-    my $db = Journal::DB->new($self->dsn)
-        or die;
-    $self->db($db);
     $self->tz(DateTime::TimeZone->new(name => 'local'));
 }
 
-sub call {
-    my $self = shift;
-    my $req = Journal::Request->new(shift);
-
-    my $res;
+sub dispatch {
+    my ($self, $req) = @_;
     given ($req->path_info) {
-        when (m{^/writer(/(?<id>\d+)?|)$}) { 
-            if ($req->method eq 'POST') {
-                $res = $self->writer_post($req, $+{id});
-            } else {
-                $res = $self->writer_get($req, $+{id});
-            }
-        }
-        when (m{^/$}) { $res = $self->page($req, 1) }
-        when (m{^/page/(?<page>\d+)$}) { $res = $self->page($req, $+{page}) }
-        when (m{^/entry/(?<id>\d+)$}) { $res = $self->entry($req, $+{id}) }
-        when (m{^/feed$}) { $res = $self->feed($req) }
-        default { $res = $req->not_found() }
+        when (m{^/writer(/(?<id>\d+)?|)$}) { return 'writer_' . $req->method, $+{id} }
+        when (m{^/$}) { return 'page', 1 }
+        when (m{^/page/(?<page>\d+)$}) { return 'page', $+{page} }
+        when (m{^/entry/(?<id>\d+)$}) { return 'entry', $+{id} }
+        when (m{^/feed$}) { return 'feed' }
     }
-
-    return $res->finalize;
 }
 
-sub writer_get {
+sub writer_GET {
     my ($self, $req, $id) = @_;
     my $entry = {};
     if ($id) {
         $entry = $self->db->find('entry', '*', {id => $id})
-            or return $req->not_found($req);
+            or return $self->error(404);
     }
-    return $req->normal_response(
-        Journal::View->render_layout('writer', {entry => $entry})
-    );
+    $self->render('writer', {entry => $entry});
 }
 
-sub writer_post {
+sub writer_POST {
     my ($self, $req, $id) = @_;
     my $params = $req->parameters->as_hashref;
     if (delete $params->{delete}) {
@@ -83,20 +62,16 @@ sub page {
     my $entries = $self->db->select(
         'entry', '*', undef, {-desc => 'id'}, 10, 10 * ($page - 1)
     );
-    $req->normal_response(
-        Journal::View->render_layout('page',
-            { page => $page, entries => [map {$self->deflate($_) } @$entries] }
-        )
+    $self->render('page',
+        { page => $page, entries => [map {$self->deflate($_) } @$entries] }
     );
 }
 
 sub entry {
     my ($self, $req, $id) = @_;
     my $entry = $self->db->find( 'entry', '*', {id => $id} )
-        or return $req->not_found;
-    $req->normal_response(
-        Journal::View->render_layout('entry', {entry => $self->deflate($entry)})
-    );
+        or return $self->error(404);
+    $self->render('entry', {entry => $self->deflate($entry)})
 }
 
 sub feed {
@@ -114,7 +89,7 @@ sub feed {
         $entry->issued($item->{posted_at});
         $feed->add_entry($entry);
     }
-    $req->normal_response($feed->as_xml, 'application/rss+xml; charset=utf-8');
+    $self->respond($feed->as_xml, 'application/rss+xml; charset=utf-8');
 }
 
 sub deflate {
@@ -122,7 +97,7 @@ sub deflate {
     $entry->{posted_at} = DateTime->from_epoch(
         epoch => $entry->{posted_at},
         time_zone => $self->tz,
-    );
+    )->datetime;
     $entry->{html} = do {
         if ($entry->{format} eq 'hatena') {
             Text::Hatena->parse($entry->{body})
