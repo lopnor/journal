@@ -1,6 +1,6 @@
 package Journal::View;
 use 5.12.0;
-use Soffritto::View;
+use Soffritto::Web::Markup;
 
 
 template 'writer' => sub {
@@ -50,7 +50,7 @@ template 'page' => sub {
 sub make_entry {
     my ($class, $stash) = @_;
     my $e = $stash->{entry};
-    return [
+    return (
         div => [ { class => 'entry hentry' },
             h2 => [ { class => 'subject entry-title' },
                 a => [ { rel => 'bookmark', href => "/entry/$e->{id}" },  $e->{subject} ]
@@ -60,7 +60,7 @@ sub make_entry {
                 $e->{html},
             ]
         ],
-    ];
+    );
 };
 
 sub layout {
