@@ -97,7 +97,7 @@ sub deflate {
     $entry->{posted_at} = DateTime->from_epoch(
         epoch => $entry->{posted_at},
         time_zone => $self->tz,
-    )->datetime;
+    );
     $entry->{html} = do {
         if ($entry->{format} eq 'hatena') {
             Text::Hatena->parse($entry->{body})

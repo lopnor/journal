@@ -55,7 +55,7 @@ sub make_entry {
             h2 => [ { class => 'subject entry-title' },
                 a => [ { rel => 'bookmark', href => "/entry/$e->{id}" },  $e->{subject} ]
             ],
-            div => [ { class => 'updated' }, $e->{posted_at} ],
+            div => [ { class => 'updated' }, "$e->{posted_at}" ],
             div => [ { class => join(' ', 'entry-content', $e->{format}) },
                 $e->{html},
             ]
