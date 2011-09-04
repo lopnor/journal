@@ -1,13 +1,13 @@
 package Journal::View;
 use 5.12.0;
 use Soffritto::Web::Markup;
-
+use parent 'Soffritto::Web::View';
 
 template 'writer' => sub {
     my ($class, $stash) = @_;
     my $content = [
         form => [ { method => 'POST' },
-            input => { id => 'form_subject', type => 'text', name => 'submect',
+            input => { id => 'form_subject', type => 'text', name => 'subject',
                 value => $stash->{entry}{subject} || '' 
             },
             textarea => [ { id => 'form_body', name => 'body' },
