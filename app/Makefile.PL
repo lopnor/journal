@@ -11,7 +11,7 @@ WriteMakefile(
     LICENSE => 'perl',
     MIN_PERL_VERSION => 5.012000,
     PREREQ_PM => {
-        'Soffritto::Web' => 0,
+#        'Soffritto::Web' => 0,
         'Text::Markdown' => 0,
         'Text::Hatena' => 0,
         'DateTime' => 0,
