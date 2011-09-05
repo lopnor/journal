@@ -18,11 +18,14 @@ sub prepare {
 sub dispatch {
     my ($self, $req) = @_;
     given ($req->path_info) {
-        when (m{^/writer(/(?<id>\d+)?|)$}) { return 'writer_' . $req->method, $+{id} }
-        when (m{^/$}) { return 'page', 1 }
-        when (m{^/page/(?<page>\d+)$}) { return 'page', $+{page} }
-        when (m{^/entry/(?<id>\d+)$}) { return 'entry', $+{id} }
-        when (m{^/feed$}) { return 'feed' }
+        when (m{^/writer(/(?<id>\d+)?|)$}) { 
+            my $method = 'writer_' . $req->method;
+            return \&$method, $+{id};
+        }
+        when (m{^/$}) { return \&page, 1 }
+        when (m{^/page/(?<page>\d+)$}) { return \&page, $+{page} }
+        when (m{^/entry/(?<id>\d+)$}) { return \&entry, $+{id} }
+        when (m{^/feed$}) { return \&feed }
     }
 }
 
