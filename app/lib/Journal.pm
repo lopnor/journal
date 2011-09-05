@@ -8,6 +8,8 @@ use DateTime;
 use DateTime::TimeZone;
 use XML::Feed;
 
+our $VERSION = 0.01;
+
 sub prepare {
     my $self = shift;
     $self->tz(DateTime::TimeZone->new(name => 'local'));
