@@ -1,5 +1,0 @@
-journal:
-    type: perl
-    approot: app
-mysql:
-    type: mysql
