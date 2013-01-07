@@ -67,6 +67,7 @@ sub page {
     my $entries = $self->db->select(
         'entry', '*', undef, {-desc => 'id'}, 10, 10 * ($page - 1)
     );
+    scalar @$entries or return $self->error(404);
     $self->render('page',
         { page => $page, entries => [map {$self->deflate($_) } @$entries] }
     );
